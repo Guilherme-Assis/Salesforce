@@ -30,6 +30,7 @@ jobs:
         run: |
           npm install -g @mermaid-js/mermaid-cli
           npm install puppeteer markdown-it node-fetch formdata-node form-data-encoder
+          sudo apt-get install -y jq
 
       - name: Create output folder
         run: mkdir -p output
@@ -47,52 +48,66 @@ jobs:
 
       - name: Process and generate PDFs
         run: |
+          mkdir -p docs
+
           while IFS= read -r filepath; do
             filename=$(basename "$filepath")
-            ext="${filename##*.}"
 
             if [[ "$filepath" == *"/classes/"* ]]; then
               language="Java"
-              type="classes"
             elif [[ "$filepath" == *"/triggers/"* ]]; then
               language="Java"
-              type="triggers"
             elif [[ "$filepath" == *"/lwc/"* ]]; then
               language="Java"
-              type="lwc"
             elif [[ "$filename" == *"flow-meta.xml" ]]; then
               language="PHP"
-              type="flows"
             else
+              echo "❌ Ignorando arquivo não reconhecido: $filepath"
               continue
             fi
 
-            curl_response=$(curl -s -X POST "$API_BASE_URL/ai/document" \
-              -H "Authorization: Bearer $API_TOKEN" \
-              -F "files=@$filepath" \
-              -F "RunName=Doc" \
-              -F "JobName=DemoDocCreator" \
-              -F "DocumentationFormat=markdown" \
-              -F "DiagramFormat=mermaid" \
-              -F "SourceCodeLanguage=$language" \
-              -F "DocumentationAudience=Software Engineer" \
-              -F "PromptId=DocumentCode_CLI" \
-              -F "TargetExtension=md" \
-              -F "Llm=GPT_4o_USA" \
-              -F "AdditionalInstructions=Generate this documentation in Portuguese - BR")
+            echo "📤 Enviando $filename para API..."
+            for attempt in {1..3}; do
+              response=$(curl -s -X POST "$API_BASE_URL/ai/document" \
+                -H "Authorization: Bearer $API_TOKEN" \
+                -F "files=@$filepath" \
+                -F "RunName=Doc" \
+                -F "JobName=DemoDocCreator" \
+                -F "DocumentationFormat=markdown" \
+                -F "DiagramFormat=mermaid" \
+                -F "SourceCodeLanguage=$language" \
+                -F "DocumentationAudience=Software Engineer" \
+                -F "PromptId=DocumentCode_CLI" \
+                -F "TargetExtension=md" \
+                -F "Llm=GPT_4o_USA" \
+                -F "AdditionalInstructions=Generate this documentation in Portuguese - BR")
 
-            job_id=$(echo "$curl_response" | tr -d '\r\n')
-            if [[ -z "$job_id" ]]; then
-              echo "❌ Failed to get jobId for $filepath"
+              job_id=$(echo "$response" | jq -r 'select(type=="string") // .jobId // . // empty')
+
+              if [[ -n "$job_id" && "$job_id" != "null" ]]; then
+                echo "✅ Job ID recebido: $job_id"
+                break
+              else
+                echo "⚠️ Tentativa $attempt falhou. Esperando 10 segundos..."
+                echo "Resposta da API: $response"
+                sleep 10
+              fi
+            done
+
+            if [[ -z "$job_id" || "$job_id" == "null" ]]; then
+              echo "❌ Não foi possível obter o jobId para $filename"
               continue
             fi
 
+            echo "⏳ Aguardando conclusão do job..."
             for i in {1..30}; do
-              job_status=$(curl -s -H "Authorization: Bearer $API_TOKEN" "$API_BASE_URL/ai/jobs/$job_id/status")
-              status=$(echo "$job_status" | jq -r '.status')
-              uri=$(echo "$job_status" | jq -r '.results[0].output[0].uri // empty')
+              status_response=$(curl -s -H "Authorization: Bearer $API_TOKEN" "$API_BASE_URL/ai/jobs/$job_id/status")
+              status=$(echo "$status_response" | jq -r '.status')
+              uri=$(echo "$status_response" | jq -r '.results[0].output[0].uri // empty')
 
               if [[ "$status" == "Completed" && -n "$uri" ]]; then
+                echo "✅ Job finalizado. Baixando Markdown..."
+
                 md_url="$API_BASE_URL$uri"
                 md_file="output/${filename}.md"
                 html_file="output/${filename}.html"
@@ -111,7 +126,7 @@ jobs:
                   await browser.close();
                 })();"
 
-                echo "✅ PDF gerado: $pdf_file"
+                echo "📄 PDF salvo em: $pdf_file"
                 break
               fi
 
@@ -123,8 +138,6 @@ jobs:
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-
-          mkdir -p docs
           git add docs/
           git commit -m "docs: update generated PDFs" || echo "Nenhuma alteração para commitar"
           git push
