@@ -8,7 +8,7 @@ export default class Twilio extends LightningElement {
         fetch(endPoint, {
             method: 'GET',
             headers: {
-                'Authorization' : 'Basic QUM3OTU4MzA3MTQ1MTU2OTI5MDM2OWVmNGVhMTBmNTViNjo1ODA1MWRjNGU3YmQ4NWI3YjZhYWQyMDg5MWNmOTNiNQ=='
+                'Authorization' : 'Basic '
             }
         })
         .then((response) => response.json())
