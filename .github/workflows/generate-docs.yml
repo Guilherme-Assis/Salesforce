@@ -116,6 +116,29 @@ jobs:
             pdf_file="docs/${filename}.pdf"
 
             curl -s -H "Authorization: Bearer $API_TOKEN" "$md_url" -o "$md_file"
+
+            # ✅ Substitui blocos ```mermaid``` por imagens base64 (como no TS original)
+            node -e "
+              const fs = require('fs');
+              const { execSync } = require('child_process');
+              const mdPath = '${md_file}';
+              let content = fs.readFileSync(mdPath, 'utf8');
+              const matches = [...content.matchAll(/```mermaid\\n([\\s\\S]*?)\\n```/g)];
+              matches.forEach((match, i) => {
+                const diagram = match[1];
+                const mmdFile = \`output/tmp_\${i}.mmd\`;
+                const pngFile = \`output/diagram_\${i}.png\`;
+                fs.writeFileSync(mmdFile, diagram);
+                execSync(\`mmdc -i \${mmdFile} -o \${pngFile} -b transparent\`);
+                const base64 = fs.readFileSync(pngFile).toString('base64');
+                const imgTag = \`<img src='data:image/png;base64,\${base64}' />\`;
+                content = content.replace(match[0], imgTag);
+                fs.unlinkSync(mmdFile);
+                fs.unlinkSync(pngFile);
+              });
+              fs.writeFileSync(mdPath, content);
+            "
+
             npx -y markdown-it "$md_file" > "$html_file"
 
             node -e "
