@@ -1,2 +1,2 @@
-force-app/main/default/lwc/openAI/openAI.js
-force-app/main/default/lwc/twilio/twilio.js
+force-app/main/default/lwc/documentsPreview/documentsPreview.js
+force-app/main/default/lwc/spinner/spinner.js
