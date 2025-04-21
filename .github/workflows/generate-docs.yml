@@ -119,13 +119,13 @@ jobs:
 
             export MD_PATH="$md_file"
             echo "Substituindo blocos Mermaid..."
-            cat << 'EOF' > replaceMermaid.js
+            printf '%s\n' "$(cat <<'EOF'
             const fs = require('fs');
             const { execSync } = require('child_process');
             const mdPath = process.env.MD_PATH;
             let content = fs.readFileSync(mdPath, 'utf8');
             const matches = [...content.matchAll(/```mermaid\n([\s\S]*?)\n```/g)];
-
+            
             matches.forEach((match, i) => {
               const diagram = match[1];
               const mmdFile = `output/tmp_${i}.mmd`;
@@ -141,6 +141,7 @@ jobs:
             });
             fs.writeFileSync(mdPath, content);
             EOF
+            )" > replaceMermaid.js
 
             node replaceMermaid.js
 
