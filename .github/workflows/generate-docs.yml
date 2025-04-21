@@ -1,19 +1,130 @@
-name: GFT AI Generate Documents
+name: Generate Salesforce Docs
 
 on:
   push:
     branches:
       - main
-  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  run-generator:
+  generate-docs:
     runs-on: ubuntu-latest
+
+    env:
+      API_TOKEN: ${{ secrets.API_TOKEN }}
+      API_BASE_URL: https://api.prd.ultragas.ai-impact.gft-cloud.com
+      LANG: pt-BR
+
     steps:
-      - name: Checkout código
-        uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Exibir conteúdo do projeto
-        run: ls -R
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
-      # Adicione aqui seus scripts de build ou geração
+      - name: Install dependencies
+        run: |
+          npm install -g @mermaid-js/mermaid-cli
+          npm install puppeteer markdown-it node-fetch formdata-node form-data-encoder
+
+      - name: Create output folder
+        run: mkdir -p output
+
+      - name: Find Salesforce files
+        id: detect
+        run: |
+          find force-app/main/default -type f \( \
+            -name "*.cls" -path "*/classes/*" -o \
+            -name "*.trigger" -path "*/triggers/*" -o \
+            -name "*.js" -path "*/lwc/*" -o \
+            -name "*.flow-meta.xml" -path "*/flows/*" \
+          \) > files.txt
+          cat files.txt
+
+      - name: Process and generate PDFs
+        run: |
+          while IFS= read -r filepath; do
+            filename=$(basename "$filepath")
+            ext="${filename##*.}"
+
+            if [[ "$filepath" == *"/classes/"* ]]; then
+              language="Java"
+              type="classes"
+            elif [[ "$filepath" == *"/triggers/"* ]]; then
+              language="Java"
+              type="triggers"
+            elif [[ "$filepath" == *"/lwc/"* ]]; then
+              language="Java"
+              type="lwc"
+            elif [[ "$filename" == *"flow-meta.xml" ]]; then
+              language="PHP"
+              type="flows"
+            else
+              continue
+            fi
+
+            curl_response=$(curl -s -X POST "$API_BASE_URL/ai/document" \
+              -H "Authorization: Bearer $API_TOKEN" \
+              -F "files=@$filepath" \
+              -F "RunName=Doc" \
+              -F "JobName=DemoDocCreator" \
+              -F "DocumentationFormat=markdown" \
+              -F "DiagramFormat=mermaid" \
+              -F "SourceCodeLanguage=$language" \
+              -F "DocumentationAudience=Software Engineer" \
+              -F "PromptId=DocumentCode_CLI" \
+              -F "TargetExtension=md" \
+              -F "Llm=GPT_4o_USA" \
+              -F "AdditionalInstructions=Generate this documentation in Portuguese - BR")
+
+            job_id=$(echo "$curl_response" | tr -d '\r\n')
+            if [[ -z "$job_id" ]]; then
+              echo "❌ Failed to get jobId for $filepath"
+              continue
+            fi
+
+            for i in {1..30}; do
+              job_status=$(curl -s -H "Authorization: Bearer $API_TOKEN" "$API_BASE_URL/ai/jobs/$job_id/status")
+              status=$(echo "$job_status" | jq -r '.status')
+              uri=$(echo "$job_status" | jq -r '.results[0].output[0].uri // empty')
+
+              if [[ "$status" == "Completed" && -n "$uri" ]]; then
+                md_url="$API_BASE_URL$uri"
+                md_file="output/${filename}.md"
+                html_file="output/${filename}.html"
+                pdf_file="docs/${filename}.pdf"
+
+                curl -s -H "Authorization: Bearer $API_TOKEN" "$md_url" -o "$md_file"
+                npx -y markdown-it "$md_file" > "$html_file"
+
+                node -e "
+                const puppeteer = require('puppeteer');
+                (async () => {
+                  const browser = await puppeteer.launch();
+                  const page = await browser.newPage();
+                  await page.goto('file://$(pwd)/$html_file', { waitUntil: 'networkidle0' });
+                  await page.pdf({ path: '$pdf_file', format: 'A4' });
+                  await browser.close();
+                })();"
+
+                echo "✅ PDF gerado: $pdf_file"
+                break
+              fi
+
+              sleep 2
+            done
+          done < files.txt
+
+      - name: Commit generated PDFs to docs folder
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+
+          mkdir -p docs
+          git add docs/
+          git commit -m "docs: update generated PDFs" || echo "Nenhuma alteração para commitar"
+          git push
