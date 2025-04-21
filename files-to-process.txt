@@ -1,2 +1,2 @@
-force-app/main/default/lwc/helloWorld/helloWorld.js
-force-app/main/default/lwc/teste/teste.js
+force-app/main/default/lwc/openAI/openAI.js
+force-app/main/default/lwc/twilio/twilio.js

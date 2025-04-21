@@ -1,0 +1,112 @@
+<h1>Documentação do arquivo openAI.js</h1>
+<h2>Introdução</h2>
+<p>Este arquivo contém a implementação de um componente Lightning Web Component (LWC) chamado <code>OpenAI</code>. Ele é projetado para interagir com uma classe Apex no Salesforce chamada <code>openAIclass</code> para realizar uma verificação de texto usando a API de conclusão de texto do OpenAI.</p>
+<h2>Descrição</h2>
+<p>O componente <code>OpenAI</code> permite que os usuários insiram um texto em um campo de entrada, enviem esse texto para o backend (classe Apex) e recebam uma resposta processada. A interação com o backend é feita por meio de um método Apex chamado <code>textcompletionCeck</code>, que é importado no início do arquivo.</p>
+<h2>Estrutura</h2>
+<p>O arquivo é estruturado da seguinte forma:</p>
+<ol>
+<li>Importação de módulos e dependências.</li>
+<li>Declaração de variáveis rastreáveis para armazenar o texto de entrada e a resposta retornada.</li>
+<li>Métodos para manipular eventos de entrada do usuário e realizar a chamada ao backend.</li>
+</ol>
+<h2>Dependências</h2>
+<p>Este arquivo depende de:</p>
+<ul>
+<li><code>LightningElement</code>, <code>track</code> e <code>api</code> do módulo <code>lwc</code> para criar e gerenciar o componente.</li>
+<li>Método Apex <code>textcompletionCeck</code> da classe <code>openAIclass</code> para processar o texto.</li>
+</ul>
+<h2>Imports</h2>
+<pre><code class="language-javascript">import { LightningElement, track, api } from 'lwc';
+import fetchCompletion from '@salesforce/apex/openAIclass.textcompletionCeck';
+</code></pre>
+<h3>Descrição dos Imports:</h3>
+<ul>
+<li><code>LightningElement</code>: Classe base para criar componentes LWC.</li>
+<li><code>track</code>: Decorador usado para tornar as propriedades reativas.</li>
+<li><code>api</code>: Decorador usado para expor propriedades para outros componentes.</li>
+<li><code>fetchCompletion</code>: Método Apex importado para realizar a verificação de texto.</li>
+</ul>
+<h2>Variáveis</h2>
+<h3><code>@track texttocheck</code></h3>
+<ul>
+<li><strong>Descrição</strong>: Armazena o texto inserido pelo usuário no campo de entrada.</li>
+<li><strong>Tipo</strong>: <code>String</code></li>
+<li><strong>Uso</strong>: Atualizado sempre que o usuário digita no campo de entrada.</li>
+</ul>
+<h3><code>@track responseReturned</code></h3>
+<ul>
+<li><strong>Descrição</strong>: Armazena a resposta retornada pelo método Apex após o processamento do texto.</li>
+<li><strong>Tipo</strong>: <code>String</code></li>
+<li><strong>Uso</strong>: Atualizado após a chamada bem-sucedida ao método Apex.</li>
+</ul>
+<h2>Métodos</h2>
+<h3><code>assignData(event)</code></h3>
+<ul>
+<li><strong>Descrição</strong>: Método chamado quando o usuário digita no campo de entrada. Ele atualiza a variável <code>texttocheck</code> com o valor inserido.</li>
+<li><strong>Parâmetros</strong>:
+<ul>
+<li><code>event</code>: Objeto de evento que contém o valor do campo de entrada.</li>
+</ul>
+</li>
+<li><strong>Funcionamento</strong>:
+<ul>
+<li>Obtém o valor do campo de entrada a partir de <code>event.target.value</code>.</li>
+<li>Atualiza a variável <code>texttocheck</code>.</li>
+<li>Exibe o valor no console para depuração.</li>
+</ul>
+</li>
+</ul>
+<h3><code>doSearch()</code></h3>
+<ul>
+<li><strong>Descrição</strong>: Método chamado para enviar o texto inserido ao backend e processar a resposta.</li>
+<li><strong>Funcionamento</strong>:
+<ul>
+<li>Chama o método Apex <code>fetchCompletion</code>, passando o texto armazenado em <code>texttocheck</code>.</li>
+<li>Atualiza a variável <code>responseReturned</code> com o resultado retornado.</li>
+<li>Exibe o resultado no console para depuração.</li>
+<li>Em caso de erro, exibe um alerta com os detalhes do erro.</li>
+</ul>
+</li>
+</ul>
+<h2>Exemplo</h2>
+<p>Abaixo está um exemplo de como o componente pode ser usado em um arquivo HTML:</p>
+<pre><code class="language-html">&lt;template&gt;
+    &lt;lightning-card title=&quot;OpenAI Text Completion&quot;&gt;
+        &lt;div class=&quot;slds-m-around_medium&quot;&gt;
+            &lt;lightning-input 
+                label=&quot;Digite o texto para verificar&quot; 
+                onchange={assignData}&gt;
+            &lt;/lightning-input&gt;
+            &lt;lightning-button 
+                label=&quot;Verificar Texto&quot; 
+                onclick={doSearch}&gt;
+            &lt;/lightning-button&gt;
+            &lt;p&gt;Resposta Retornada: {responseReturned}&lt;/p&gt;
+        &lt;/div&gt;
+    &lt;/lightning-card&gt;
+&lt;/template&gt;
+</code></pre>
+<h2>Diagrama de Dependências</h2>
+<p>O diagrama abaixo ilustra as dependências do componente <code>OpenAI</code>:</p>
+<pre><code class="language-mermaid">classDiagram
+    class OpenAI {
+        +@track texttocheck
+        +@track responseReturned
+        +assignData(event)
+        +doSearch()
+    }
+    OpenAI --&gt; LightningElement
+    OpenAI --&gt; openAIclass : fetchCompletion
+</code></pre>
+<h2>Notas</h2>
+<ul>
+<li>Certifique-se de que a classe Apex <code>openAIclass</code> e o método <code>textcompletionCeck</code> estejam implementados corretamente no Salesforce.</li>
+<li>O método Apex deve estar exposto como <code>@AuraEnabled</code> para ser acessível pelo LWC.</li>
+<li>O componente pode ser estendido para incluir validações adicionais ou manipulação de erros mais robusta.</li>
+</ul>
+<h2>Vulnerabilidades</h2>
+<ul>
+<li><strong>Erro de Rede</strong>: Se a chamada ao método Apex falhar devido a problemas de rede, o componente exibirá um alerta com os detalhes do erro.</li>
+<li><strong>Validação de Entrada</strong>: Atualmente, não há validação para o texto inserido pelo usuário. É recomendável adicionar validações para evitar entradas inválidas ou maliciosas.</li>
+</ul>
