@@ -30,7 +30,6 @@ jobs:
         run: |
           npm install -g @mermaid-js/mermaid-cli
           npm install puppeteer markdown-it node-fetch formdata-node form-data-encoder
-          sudo apt-get install -y jq
 
       - name: Create output folder
         run: mkdir -p output
@@ -98,40 +97,48 @@ jobs:
             fi
 
             echo "⏳ Aguardando conclusão do job..."
+            uri=""
             for i in {1..30}; do
               status_response=$(curl -s -H "Authorization: Bearer $API_TOKEN" "$API_BASE_URL/ai/jobs/$job_id/status")
               status=$(echo "$status_response" | jq -r '.status')
               uri=$(echo "$status_response" | jq -r '.results[0].output[0].uri // empty')
 
+              echo "🔁 Tentativa $i – status: $status | uri: $uri"
+
               if [[ "$status" == "Completed" && -n "$uri" ]]; then
                 echo "✅ Job finalizado. Baixando Markdown..."
-
-                md_url="$API_BASE_URL$uri"
-                md_file="output/${filename}.md"
-                html_file="output/${filename}.html"
-                pdf_file="docs/${filename}.pdf"
-
-                curl -s -H "Authorization: Bearer $API_TOKEN" "$md_url" -o "$md_file"
-                npx -y markdown-it "$md_file" > "$html_file"
-
-                node -e "
-                const puppeteer = require('puppeteer');
-                (async () => {
-                  const browser = await puppeteer.launch({
-                    args: ['--no-sandbox', '--disable-setuid-sandbox']
-                  });
-                  const page = await browser.newPage();
-                  await page.goto('file://$(pwd)/$html_file', { waitUntil: 'networkidle0' });
-                  await page.pdf({ path: '$pdf_file', format: 'A4' });
-                  await browser.close();
-                })();"
-
-                echo "📄 PDF salvo em: $pdf_file"
                 break
               fi
 
               sleep 2
             done
+
+            if [[ -z "$uri" ]]; then
+              echo "❌ Tempo limite excedido. URI não disponível para $filename"
+              continue
+            fi
+
+            md_url="$API_BASE_URL$uri"
+            md_file="output/${filename}.md"
+            html_file="output/${filename}.html"
+            pdf_file="docs/${filename}.pdf"
+
+            curl -s -H "Authorization: Bearer $API_TOKEN" "$md_url" -o "$md_file"
+            npx -y markdown-it "$md_file" > "$html_file"
+
+            node -e "
+            const puppeteer = require('puppeteer');
+            (async () => {
+              const browser = await puppeteer.launch({
+                args: ['--no-sandbox', '--disable-setuid-sandbox']
+              });
+              const page = await browser.newPage();
+              await page.goto('file://$(pwd)/$html_file', { waitUntil: 'networkidle0' });
+              await page.pdf({ path: '$pdf_file', format: 'A4' });
+              await browser.close();
+            })();"
+
+            echo "📄 PDF salvo em: $pdf_file"
 
           done < files.txt
 
