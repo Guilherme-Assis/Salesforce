@@ -82,17 +82,17 @@ jobs:
                 -F "Llm=GPT_4o_USA" \
                 -F "AdditionalInstructions=Generate this documentation in Portuguese - BR")
 
-              job_id=$(echo "$response" | jq -r 'select(type=="string") // .jobId // . // empty')
+              job_id=$(echo "$response" | tr -d '\r\n')
 
               if [[ -n "$job_id" && "$job_id" != "null" ]]; then
                 echo "✅ Job ID recebido: $job_id"
                 break
               else
-                echo "⚠️ Tentativa $attempt falhou. Esperando 10 segundos..."
-                echo "Resposta da API: $response"
+                echo "⚠️ Tentativa $attempt falhou. Resposta da API: $response"
                 sleep 10
               fi
-            done
+          done
+
 
             if [[ -z "$job_id" || "$job_id" == "null" ]]; then
               echo "❌ Não foi possível obter o jobId para $filename"
