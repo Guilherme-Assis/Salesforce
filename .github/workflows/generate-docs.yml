@@ -1,57 +1,56 @@
+---
 name: Generate LWC Docs (Parallel)
-
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   pull_request:
-    branches: [main]
-
+    branches:
+      - main
 permissions:
   contents: write
-
 jobs:
   generate-docs:
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
-        shard: [0, 1, 2, 3]
-
+        shard:
+          - 0
+          - 1
+          - 2
+          - 3
     env:
       API_TOKEN: ${{ secrets.API_TOKEN }}
       API_BASE_URL: https://api.prd.ultragas.ai-impact.gft-cloud.com
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-
       - name: Install dependencies
         run: |
           npm install -g @mermaid-js/mermaid-cli
           npm install puppeteer markdown-it
           sudo apt-get install -y jq
-
       - name: Prepare output folders
         run: mkdir -p output docs
-
       - name: Find and filter LWC files for this shard
-        run: |
+        run: >
           SHARD_ID=${{ matrix.shard }}
+
           echo "🧩 Este é o SHARD $SHARD_ID (LWC only)"
+
 
           find force-app/main/default -type f -name "*.js" -path "*/lwc/*" \
             | sort | awk -v shard=$SHARD_ID '{ if (NR % 4 == shard) print }' > files-to-process.txt
 
           echo "Arquivos LWC para este shard:"
-          cat files-to-process.txt
 
+          cat files-to-process.txt
       - name: Process LWC files
-        run: |
+        run: >
           while IFS= read -r filepath; do
             filename=$(basename "$filepath")
             language="Java"
@@ -162,17 +161,22 @@ jobs:
             echo "📄 PDF salvo em: docs/${filename}.pdf"
 
           done < files-to-process.txt
-
       - name: Commit generated PDFs
-        run: |
+        run: >
           git config user.name "github-actions"
+
           git config user.email "actions@github.com"
 
+
           git fetch origin main
+
           git reset --soft origin/main
 
+
           git add -A
+
           git commit -m "docs(shard-${{ matrix.shard }}): update LWC PDFs" || echo "Nenhuma alteração para commitar"
+
 
           for i in {1..3}; do
             git pull --rebase && git push && break
