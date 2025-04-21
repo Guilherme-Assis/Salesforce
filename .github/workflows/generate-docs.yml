@@ -118,8 +118,8 @@ jobs:
             curl -s -H "Authorization: Bearer $API_TOKEN" "$md_url" -o "$md_file"
 
             export MD_PATH="$md_file"
-            node <<'EOF'
-            const fs = require('fs');
+            echo "Substituindo blocos Mermaid..."
+            echo "const fs = require('fs');
             const { execSync } = require('child_process');
 
             const mdPath = process.env.MD_PATH;
@@ -133,14 +133,15 @@ jobs:
               fs.writeFileSync(mmdFile, diagram);
               execSync(`mmdc -i ${mmdFile} -o ${pngFile} -b transparent`);
               const base64 = fs.readFileSync(pngFile).toString('base64');
-              const imgTag = `<img src="data:image/png;base64,${base64}" />`;
+              const imgTag = `<img src=\"data:image/png;base64,${base64}\" />`;
               content = content.replace(match[0], imgTag);
               fs.unlinkSync(mmdFile);
               fs.unlinkSync(pngFile);
             });
 
-            fs.writeFileSync(mdPath, content);
-            EOF
+            fs.writeFileSync(mdPath, content);" > replaceMermaid.js
+
+            node replaceMermaid.js
 
             npx -y markdown-it "$md_file" > "$html_file"
 
