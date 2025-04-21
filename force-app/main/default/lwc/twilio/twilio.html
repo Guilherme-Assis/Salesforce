@@ -1,0 +1,13 @@
+<template>
+    <lightning-card variant="Narrow" title="Twilio" icon-name="standard:client">
+        <lightning-input label="Numero" name="phoneNumber" type="text"></lightning-input>
+        <lightning-input label="Mensagem" name="message" type="text"></lightning-input>
+        <button onclick={handleFetch}>Call API</button>
+
+        <template for:each={repos.messages} for:item="msg">
+            1
+        </template>
+
+    </lightning-card>
+
+</template>

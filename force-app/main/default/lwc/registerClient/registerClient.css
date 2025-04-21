@@ -1,0 +1,20 @@
+/*
+CREATE BY GUILHERME ASSIS
+*/
+
+.borderCard{
+    border: solid 1px lightgray;
+}
+lightning-input{
+    border-radius: .5rem;
+    width: 50%;
+    margin-left: 25%;
+}
+
+.alignItemCenter{
+    text-align: center;
+}
+
+.paddingLeftDetail{
+    padding-left: 1em;
+}

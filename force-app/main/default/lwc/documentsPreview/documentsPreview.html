@@ -1,0 +1,17 @@
+<template>
+    <div class="slds-size_3-of-4">
+        <div class="slds-box slds-box_x-small slds-text-align_center slds-m-around_x-small">Visualização de documentos
+        <lightning-carousel disable-auto-scroll>
+            <template for:each={data.items} for:item="doc">
+                <lightning-carousel-image key={doc.documentKey}
+                src = {doc.url}
+                header = {doc.metadata.content.name}
+                description = {doc.metadata.content.number}
+                alternative-text = "First card accessible description."
+                >
+            </lightning-carousel-image>
+            </template>
+        </lightning-carousel>
+        </div>
+  </div>
+</template>

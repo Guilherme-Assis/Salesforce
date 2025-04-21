@@ -1,0 +1,30 @@
+<!--
+ - Created by gassisal on 21/02/2020.
+ -->
+
+<!-- Register Client -->
+<template>
+    <lightning-card  variant="Narrow"  title="Listar clientes" icon-name="standard:client">
+<!--Start search-->
+        <div class="alignItemCenter">
+            <lightning-input type='search' name='searchClient' label='Procurar cliente por nome' value="" onchange={handleKeyChange}> </lightning-input>
+        </div>
+<!--End search-->
+<!--Start result-->
+        <template if:true={clients.data}>
+            <div class="slds-grid slds-gutters slds-wrap slds-m-around_xx-small">
+                <template for:each={clients.data} for:item="item" for:index="idx">
+                    <lightning-card key={item.Id} class="slds-col slds-p-horizontal_medium slds-size--1-of-4 borderCard"  variant="Narrow"  title={item.Name} icon-name="action:user">
+                        <p class="paddingLeftDetail"> Telefone:  {item.phone__c}</p>
+                        <p class="paddingLeftDetail"> Email: {item.Email__c}</p>
+                    </lightning-card>
+                </template>
+            </div>
+        </template>
+<!--End result-->
+<!--Start footer-->
+        <p slot="footer">Lightning Web Components</p>
+<!--End footer-->
+    </lightning-card>
+
+</template>
