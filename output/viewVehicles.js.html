@@ -1,0 +1,130 @@
+<h1>Documentação do arquivo viewVehicles.js</h1>
+<h2>Introdução</h2>
+<p>Este arquivo contém a implementação de um componente Lightning Web Component (LWC) chamado <code>ViewVehicles</code>. Ele é responsável por exibir uma lista de veículos recuperados de um Apex Controller no Salesforce e permitir que o usuário realize a compra de um veículo.</p>
+<h2>Descrição</h2>
+<p>O componente <code>ViewVehicles</code> utiliza a funcionalidade de <code>@wire</code> para buscar dados de veículos a partir de um método Apex chamado <code>getVehicles</code>. Além disso, ele implementa uma funcionalidade para persistir a compra de um veículo utilizando o método Apex <code>persistPurchase</code>. O componente também exibe notificações (toasts) para informar o usuário sobre o sucesso ou falha das operações realizadas.</p>
+<h2>Estrutura</h2>
+<p>O arquivo é estruturado da seguinte forma:</p>
+<ol>
+<li>Importação de módulos e dependências.</li>
+<li>Declaração da classe <code>ViewVehicles</code> que estende <code>LightningElement</code>.</li>
+<li>Uso do decorador <code>@wire</code> para buscar dados de veículos.</li>
+<li>Implementação de métodos para manipular eventos e exibir notificações.</li>
+</ol>
+<h2>Dependências</h2>
+<p>O arquivo depende dos seguintes módulos e métodos:</p>
+<ul>
+<li><code>LightningElement</code> e <code>wire</code> do módulo <code>lwc</code>.</li>
+<li>Métodos Apex <code>getVehicles</code> e <code>persistPurchase</code> do Apex Controller <code>Vehicles</code>.</li>
+<li><code>ShowToastEvent</code> do módulo <code>lightning/platformShowToastEvent</code>.</li>
+</ul>
+<h2>Imports</h2>
+<pre><code class="language-javascript">import { LightningElement, wire } from 'lwc';
+import getVehicles from '@salesforce/apex/Vehicles.getVehicles';
+import persistPurchase from '@salesforce/apex/Vehicles.persistPurchase';
+import { ShowToastEvent } from &quot;lightning/platformShowToastEvent&quot;;
+</code></pre>
+<h3>Descrição dos Imports:</h3>
+<ul>
+<li><strong><code>LightningElement</code></strong>: Classe base para criar componentes LWC.</li>
+<li><strong><code>wire</code></strong>: Decorador usado para conectar métodos Apex ou outros serviços ao componente.</li>
+<li><strong><code>getVehicles</code></strong>: Método Apex para buscar a lista de veículos.</li>
+<li><strong><code>persistPurchase</code></strong>: Método Apex para persistir a compra de um veículo.</li>
+<li><strong><code>ShowToastEvent</code></strong>: Classe para criar e exibir notificações (toasts) no Salesforce.</li>
+</ul>
+<h2>Variáveis</h2>
+<ul>
+<li><strong><code>vehicles</code></strong>: Armazena a lista de veículos recuperados do método Apex <code>getVehicles</code>.</li>
+</ul>
+<h2>Métodos</h2>
+<h3><code>wiredVehicles({data, error})</code></h3>
+<ul>
+<li><strong>Descrição</strong>: Método decorado com <code>@wire</code> que busca a lista de veículos do método Apex <code>getVehicles</code>. Ele atualiza a variável <code>vehicles</code> com os dados recebidos ou exibe um erro no console caso a operação falhe.</li>
+<li><strong>Parâmetros</strong>:
+<ul>
+<li><code>data</code>: Dados retornados pelo método Apex.</li>
+<li><code>error</code>: Erro retornado pelo método Apex, caso ocorra.</li>
+</ul>
+</li>
+<li><strong>Funcionamento</strong>:
+<ul>
+<li>Se <code>data</code> estiver disponível, a lista de veículos é armazenada na variável <code>vehicles</code>.</li>
+<li>Se ocorrer um erro, ele é exibido no console.</li>
+</ul>
+</li>
+</ul>
+<h3><code>purchase(event)</code></h3>
+<ul>
+<li><strong>Descrição</strong>: Método chamado ao clicar no botão de compra de um veículo. Ele persiste a compra utilizando o método Apex <code>persistPurchase</code>.</li>
+<li><strong>Parâmetros</strong>:
+<ul>
+<li><code>event</code>: Evento disparado pelo clique no botão, contendo o ID do veículo no atributo <code>dataset.id</code>.</li>
+</ul>
+</li>
+<li><strong>Funcionamento</strong>:
+<ul>
+<li>Recupera o ID do veículo a partir do evento.</li>
+<li>Chama o método Apex <code>persistPurchase</code> com o ID do veículo.</li>
+<li>Exibe uma notificação de sucesso ou erro dependendo do resultado da operação.</li>
+</ul>
+</li>
+</ul>
+<h3><code>showToast(title, message, variant)</code></h3>
+<ul>
+<li><strong>Descrição</strong>: Método para exibir notificações (toasts) no Salesforce.</li>
+<li><strong>Parâmetros</strong>:
+<ul>
+<li><code>title</code>: Título da notificação.</li>
+<li><code>message</code>: Mensagem da notificação.</li>
+<li><code>variant</code>: Tipo da notificação (<code>SUCCESS</code>, <code>ERROR</code>, etc.).</li>
+</ul>
+</li>
+<li><strong>Funcionamento</strong>:
+<ul>
+<li>Cria um evento <code>ShowToastEvent</code> com os parâmetros fornecidos.</li>
+<li>Dispara o evento para exibir a notificação.</li>
+</ul>
+</li>
+</ul>
+<h2>Exemplo</h2>
+<p>Abaixo está um exemplo de como o componente pode ser utilizado em um arquivo HTML:</p>
+<pre><code class="language-html">&lt;template&gt;
+    &lt;template if:true={vehicles}&gt;
+        &lt;ul&gt;
+            &lt;template for:each={vehicles} for:item=&quot;vehicle&quot;&gt;
+                &lt;li key={vehicle.Id}&gt;
+                    {vehicle.Name}
+                    &lt;button data-id={vehicle.Id} onclick={purchase}&gt;Comprar&lt;/button&gt;
+                &lt;/li&gt;
+            &lt;/template&gt;
+        &lt;/ul&gt;
+    &lt;/template&gt;
+    &lt;template if:false={vehicles}&gt;
+        &lt;p&gt;Carregando veículos...&lt;/p&gt;
+    &lt;/template&gt;
+&lt;/template&gt;
+</code></pre>
+<h2>Diagrama de Dependências</h2>
+<p>O diagrama abaixo ilustra as dependências do componente <code>ViewVehicles</code>:</p>
+<pre><code class="language-mermaid">classDiagram
+    class ViewVehicles {
+        - vehicles
+        + wiredVehicles({data, error})
+        + purchase(event)
+        + showToast(title, message, variant)
+    }
+    ViewVehicles --&gt; LightningElement
+    ViewVehicles --&gt; getVehicles
+    ViewVehicles --&gt; persistPurchase
+    ViewVehicles --&gt; ShowToastEvent
+</code></pre>
+<h2>Notas</h2>
+<ul>
+<li>O método <code>location.reload()</code> está comentado no código. Ele pode ser utilizado para recarregar a página após uma compra bem-sucedida, mas isso pode não ser necessário dependendo do comportamento desejado.</li>
+<li>Certifique-se de que os métodos Apex <code>getVehicles</code> e <code>persistPurchase</code> estejam devidamente implementados e acessíveis no Salesforce.</li>
+</ul>
+<h2>Vulnerabilidades</h2>
+<ul>
+<li><strong>Erro ao persistir compra</strong>: Caso o método Apex <code>persistPurchase</code> falhe, o erro é apenas exibido no console. Considere implementar um tratamento de erro mais robusto.</li>
+<li><strong>Validação de ID</strong>: O ID do veículo é recuperado diretamente do evento. Certifique-se de que ele seja validado antes de ser enviado ao método Apex para evitar problemas de segurança.</li>
+</ul>

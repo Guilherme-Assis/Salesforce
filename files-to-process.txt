@@ -1,2 +1,2 @@
-force-app/main/default/lwc/documentsPreview/documentsPreview.js
-force-app/main/default/lwc/spinner/spinner.js
+force-app/main/default/lwc/registerClient/registerClient.js
+force-app/main/default/lwc/viewVehicles/viewVehicles.js
