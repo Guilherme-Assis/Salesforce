@@ -144,4 +144,9 @@ jobs:
 
           git add docs/
           git commit -m "docs(shard-${{ matrix.shard }}): update LWC PDFs" || echo "Nenhuma alteração para commitar"
-          git push
+
+          for i in {1..3}; do
+            git pull --rebase && git push && break
+            echo "🔁 Tentativa $i de push falhou. Tentando novamente em 5s..."
+            sleep 5
+          done
