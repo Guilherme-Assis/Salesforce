@@ -1,0 +1,2 @@
+force-app/main/default/lwc/helloWorld/helloWorld.js
+force-app/main/default/lwc/teste/teste.js

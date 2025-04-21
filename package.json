@@ -37,5 +37,9 @@
     "**/{aura,lwc}/**/*.js": [
       "eslint"
     ]
+  },
+  "dependencies": {
+    "markdown-it": "^14.1.0",
+    "puppeteer": "^24.6.1"
   }
 }
