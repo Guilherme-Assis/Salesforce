@@ -1,21 +1,25 @@
-name: Generate Salesforce Docs
+name: Generate Docs (Parallel)
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
-    branches:
-      - main
+    branches: [main]
+
+permissions:
+  contents: write  # ✅ Permite git push para atualizar docs/
 
 jobs:
   generate-docs:
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        shard: [0, 1, 2, 3]  # 4 shards paralelos
+
     env:
       API_TOKEN: ${{ secrets.API_TOKEN }}
       API_BASE_URL: https://api.prd.ultragas.ai-impact.gft-cloud.com
-      LANG: pt-BR
 
     steps:
       - name: Checkout code
@@ -29,25 +33,29 @@ jobs:
       - name: Install dependencies
         run: |
           npm install -g @mermaid-js/mermaid-cli
-          npm install puppeteer markdown-it node-fetch formdata-node form-data-encoder
+          npm install puppeteer markdown-it
+          sudo apt-get install -y jq
 
-      - name: Create output folder
-        run: mkdir -p output
+      - name: Prepare output folders
+        run: mkdir -p output docs
 
-      - name: Find Salesforce files
+      - name: Find and filter files for this shard
         run: |
+          SHARD_ID=${{ matrix.shard }}
+          echo "🧩 Este é o SHARD $SHARD_ID"
+
           find force-app/main/default -type f \( \
             -name "*.cls" -path "*/classes/*" -o \
             -name "*.trigger" -path "*/triggers/*" -o \
             -name "*.js" -path "*/lwc/*" -o \
             -name "*.flow-meta.xml" -path "*/flows/*" \
-          \) > files.txt
-          cat files.txt
+          \) | awk -v shard=$SHARD_ID '{ if (NR % 4 == shard) print }' > files-to-process.txt
 
-      - name: Process and generate PDFs
+          echo "Arquivos para este shard:"
+          cat files-to-process.txt
+
+      - name: Process files
         run: |
-          mkdir -p docs
-
           while IFS= read -r filepath; do
             filename=$(basename "$filepath")
 
@@ -60,7 +68,6 @@ jobs:
             elif [[ "$filename" == *"flow-meta.xml" ]]; then
               language="PHP"
             else
-              echo "❌ Ignorando arquivo não reconhecido: $filepath"
               continue
             fi
 
@@ -138,14 +145,14 @@ jobs:
               await browser.close();
             })();"
 
-            echo "📄 PDF salvo em: $pdf_file"
+            echo "📄 PDF salvo em: docs/${filename}.pdf"
 
-          done < files.txt
+          done < files-to-process.txt
 
-      - name: Commit generated PDFs to docs folder
+      - name: Commit generated PDFs
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
           git add docs/
-          git commit -m "docs: update generated PDFs" || echo "Nenhuma alteração para commitar"
+          git commit -m "docs(shard-${{ matrix.shard }}): update PDFs" || echo "Nenhuma alteração para commitar"
           git push
