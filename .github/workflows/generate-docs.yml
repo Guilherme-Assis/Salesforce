@@ -153,8 +153,9 @@ jobs:
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-          git pull --rebase
           git add docs/
           git commit -m "docs(shard-${{ matrix.shard }}): update PDFs" || echo "Nenhuma alteração para commitar"
+          git pull --rebase
           git push
+
 
