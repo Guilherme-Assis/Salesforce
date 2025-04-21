@@ -119,7 +119,7 @@ jobs:
 
             export MD_PATH="$md_file"
             echo "Substituindo blocos Mermaid..."
-            printf '%s\n' "$(cat <<'EOF'
+            cat > replaceMermaid.js <<'EOF'
             const fs = require('fs');
             const { execSync } = require('child_process');
             const mdPath = process.env.MD_PATH;
@@ -141,7 +141,6 @@ jobs:
             });
             fs.writeFileSync(mdPath, content);
             EOF
-            )" > replaceMermaid.js
 
             node replaceMermaid.js
 
